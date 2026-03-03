@@ -1,0 +1,5 @@
+tmpfs                    /var                 tmpfs   defaults,mode=0755,size=256M                                       0      0
+/dev/mapper/data         /data                ext4    defaults,noatime,x-systemd.device-timeout=30s                     0      2
+/data/home               /home                none    bind,x-systemd.requires-mounts-for=/data                          0      0
+/data/var/lib/systemd    /var/lib/systemd     none    bind,x-systemd.requires-mounts-for=/data,x-systemd.requires-mounts-for=/var   0      0
+/data/var/lib/iwd        /var/lib/iwd         none    bind,x-systemd.requires-mounts-for=/data,x-systemd.requires-mounts-for=/var   0      0
