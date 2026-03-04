@@ -1,0 +1,9 @@
+rootfs/
+rootfs.squashfs*
+*.img
+*.squashfs
+OVMF_*
+l*.conf
+*vdi
+*.erofs*
+prepare_qemu_disk.sh
