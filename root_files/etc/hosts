@@ -1,0 +1,8 @@
+# Static table lookup for hostnames.
+# See hosts(5) for details.
+127.0.0.1        localhost
+::1              localhost
+
+# I need the ones below when visiting the campus as its Wi-Fi can't show the captive portals because I use encrypted/secure DNS.
+200.169.52.100 cwp.univali.br
+172.31.98.1 captiveportal-login.univali.br
