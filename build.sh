@@ -14,7 +14,7 @@ rm -rf $WORKDIR && mkdir -p $WORKDIR
 # for pseudofs in proc sys dev; do mkdir -p ${WORKDIR}/${pseudofs}; mount -o bind /${pseudofs} ${WORKDIR}/${pseudofs}; done
 
 pacstrap -c -K $WORKDIR \
-  base base-devel iwd eza gptfdisk linux-hardened linux-firmware-intel intel-ucode iptables less ntpd-rs dnscrypt-proxy apparmor chromium tpm2-tss tpm2-tools erofs-utils \
+  base base-devel wpa_supplicant eza gptfdisk linux-hardened linux-firmware-intel intel-ucode iptables less ntpd-rs dnscrypt-proxy apparmor chromium tpm2-tss tpm2-tools erofs-utils \
   mkinitcpio openssh pamixer fastfetch git unzip unrar pipewire-jack power-profiles-daemon python-gobject sof-firmware wireplumber pipewire-pulse pavucontrol mtools dosfstools \
   bubblewrap-suid nmap arch-repro-status flameshot slurp grim xdg-desktop-portal alacritty tmux yazi libnotify vulkan-validation-layers vulkan-icd-loader vulkan-headers vulkan-tools \
   jq yq patchutils helix helm kubectl nvim checksec age sops fluxcd kustomize opentofu pulumi azure-cli aws-cli gurk spotify-player \
@@ -31,7 +31,7 @@ ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
 locale-gen
 
 systemctl daemon-reload
-systemctl enable apparmor iptables iwd dnscrypt-proxy ntpd-rs systemd-homed mydenyusb da-lockout-clear-tpm
+systemctl enable apparmor iptables wpa_supplicant-nl80211@wlan0 dnscrypt-proxy ntpd-rs systemd-networkd systemd-homed mydenyusb da-lockout-clear-tpm
 systemctl disable systemd-timesyncd.service
 systemctl mask efi.automount
 
@@ -44,7 +44,7 @@ echo 'tmpfs                      /tmp                      tmpfs  defaults,noexe
 echo '/dev/mapper/data           /data                     ext4   defaults,noexec,nosuid,nodev,noatime,x-systemd.device-timeout=30s                                        0  2' >> /etc/fstab
 echo '/data/home                 /home                     none   bind,noexec,nosuid,nodev,x-systemd.requires-mounts-for=/data                                             0  0' >> /etc/fstab
 echo '/data/var/lib/systemd/home /var/lib/systemd/home     none   bind,noexec,nosuid,nodev,x-systemd.requires-mounts-for=/data,x-systemd.requires-mounts-for=/var          0  0' >> /etc/fstab
-echo '/data/var/lib/iwd          /var/lib/iwd              none   bind,noexec,nosuid,nodev,x-systemd.requires-mounts-for=/data,x-systemd.requires-mounts-for=/var          0  0' >> /etc/fstab
+echo '/data/etc/wpa_supplicant   /etc/wpa_supplicant/      none   bind,noexec,nosuid,nodev,x-systemd.requires-mounts-for=/data,x-systemd.requires-mounts-for=/var          0  0' >> /etc/fstab
 
 patch /etc/dnscrypt-proxy/dnscrypt-proxy.toml /etc/patch_dnscryptproxy_toml.patch
 chmod +s /usr/local/bin/allow_new_usb_tmp
