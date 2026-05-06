@@ -1,0 +1,87 @@
+#!/bin/sh
+# update.sh
+# Performs an A/B update from the latest GitHub Release.
+# Usage: sudo sh update.sh
+set -euo pipefail
+
+RELEASE_TAG="$(curl -s https://api.github.com/repos/lucasbeiler/archlinux-desktop-verity/releases | grep -i "os-" | grep '"name"' | head -1 | cut -d'"' -f4 | sed 's/[^0-9]//g')"
+RELEASE_URL="https://github.com/lucasbeiler/archlinux-desktop-verity/releases/download/${RELEASE_TAG}"
+WORKDIR="$(mktemp -d)"
+
+# Helpers
+info() { echo -e "\e[1;32m[INFO]\e[0m  $*"; }
+die()  { echo -e "\e[1;31m[ERR]\e[0m   $*" >&2; exit 1; }
+
+[[ $EUID -eq 0 ]] || die "Run as root."
+
+trap 'rm -rf "$WORKDIR"' EXIT INT TERM
+
+info "Downloading artifacts (build ${RELEASE_TAG})..."
+
+curl -L -f --progress-bar -o "$WORKDIR/bootloader-signed.efi" "$RELEASE_URL/bootloader-signed.efi" || die "Failed bootloader download"
+curl -L -f --progress-bar -o "$WORKDIR/uki-${RELEASE_TAG}-signed.efi" "$RELEASE_URL/uki-${RELEASE_TAG}-signed.efi" || die "Failed UKI download"
+curl -L -f --progress-bar -o "$WORKDIR/rootfs.erofs" "$RELEASE_URL/rootfs.erofs" || die "Failed rootfs download"
+curl -L -f --progress-bar -o "$WORKDIR/rootfs.erofs.verity" "$RELEASE_URL/rootfs.erofs.verity" || die "Failed verity download"
+curl -L -f --progress-bar -o "$WORKDIR/SHA256SUMS" "$RELEASE_URL/SHA256SUMS-${RELEASE_TAG}" || die "Failed SHA256SUMS download"
+curl -L -f --progress-bar -o "$WORKDIR/SHA256SUMS.sig" "$RELEASE_URL/SHA256SUMS-${RELEASE_TAG}.sig" || die "Failed SHA256SUMS signature download"
+
+# Verify manifest signature
+ALLOWED_SIGNERS="$(mktemp)"
+echo "build@host $(cat ~/archlinux-desktop-verity/root_files/etc/build_signing_key.pub)" > "$ALLOWED_SIGNERS"
+ssh-keygen -Y verify -f "$ALLOWED_SIGNERS" -I build@host -n hardenedos-build -s "$WORKDIR/SHA256SUMS.sig" < "$WORKDIR/SHA256SUMS" || die "Manifest signature verification failed"
+rm -f "$ALLOWED_SIGNERS"
+info "Manifest signature OK."
+
+# Verify artifact hashes
+(cd "$WORKDIR" && sha256sum --check --ignore-missing SHA256SUMS) || die "Hash verification failed"
+info "Artifact hashes OK."
+
+CURRENT_ROOT="/dev/$(ls /sys/class/block/dm-0/slaves/ | awk '{ print $1 }' | sort | head -1)" || die "Cannot detect current partition."
+[ -b "$CURRENT_ROOT" ] || die "$CURRENT_ROOT is not a block device."
+DISK=$(echo "$CURRENT_ROOT" | sed 's/[0-9]*$//')
+
+if echo "$CURRENT_ROOT" | grep -q '2$' ; then
+  CURRENT_SLOT="a"
+  TARGET_ROOT="${DISK}4"
+  TARGET_VERITY="${DISK}5"
+elif echo "$CURRENT_ROOT" | grep -q '4$'; then
+  CURRENT_SLOT="b"
+  TARGET_ROOT="${DISK}2"
+  TARGET_VERITY="${DISK}3"
+else
+  die "Cannot determine current slot from ${CURRENT_ROOT}, expected ${DISK}2 or ${DISK}4."
+fi
+
+if [ "$CURRENT_SLOT" = "a" ]; then TARGET_SLOT="b"; else TARGET_SLOT="a"; fi
+
+info "Current slot: $CURRENT_SLOT ($CURRENT_ROOT)"
+info "Writing to slot: $TARGET_SLOT ($TARGET_ROOT and $TARGET_VERITY)"
+info "Writing rootfs.erofs to $TARGET_ROOT..."
+dd if="$WORKDIR/rootfs.erofs" of="$TARGET_ROOT" bs=4M || die "dd rootfs failed"
+sync
+info "Writing rootfs.erofs.verity to $TARGET_VERITY..."
+dd if="$WORKDIR/rootfs.erofs.verity" of="$TARGET_VERITY" bs=4M || die "dd verity failed"
+sync
+
+# DERIVE PARTUUIDS FROM VERITY ROOT HASH (UAPI DPS)
+hex_to_uuid() { local h="$1"; echo "${h:0:8}-${h:8:4}-${h:12:4}-${h:16:4}-${h:20:12}"; }
+ROOTHASH=$(strings "$WORKDIR/uki-${RELEASE_TAG}-signed.efi" | grep -o 'roothash=[^ ]*' | head -n1 | cut -d= -f2)
+UUID_ROOT=$(hex_to_uuid "${ROOTHASH:0:32}")
+UUID_VERITY=$(hex_to_uuid "${ROOTHASH:32:32}")
+
+info "Updating partition UUIDs for slot $TARGET_SLOT..."
+TARGET_ROOT_PARTNUM=$(echo "$TARGET_ROOT" | grep -o '[0-9]*$')
+TARGET_VERITY_PARTNUM=$(echo "$TARGET_VERITY" | grep -o '[0-9]*$')
+sgdisk --partition-guid="${TARGET_ROOT_PARTNUM}:$UUID_ROOT" $(echo "$TARGET_ROOT" | sed 's/p\?[0-9]*$//') || die "Failed changing root partition UUID"
+sgdisk --partition-guid="${TARGET_VERITY_PARTNUM}:$UUID_VERITY" $(echo "$TARGET_VERITY" | sed 's/p\?[0-9]*$//') || die "Failed changing verity partition UUID"
+sync
+
+
+info "Updating ESP..."
+mcopy -oi "${DISK}1" "$WORKDIR/bootloader-signed.efi" ::/EFI/systemd/systemd-bootx64.efi || die "Failed updating systemd-boot"
+mcopy -oi "${DISK}1" "$WORKDIR/bootloader-signed.efi" ::/EFI/BOOT/BOOTX64.EFI || die "Failed updating fallback bootloader"
+mcopy -oi "${DISK}1" "$WORKDIR/uki-${RELEASE_TAG}-signed.efi" ::/EFI/Linux/uki-${RELEASE_TAG}-signed.efi || die "Failed updating UKI"
+sync
+
+info "Update complete. Rebooting..."
+reboot
