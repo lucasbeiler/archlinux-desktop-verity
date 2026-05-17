@@ -1,0 +1,3 @@
+rootfs/
+OVMF_*
+prepare_qemu_disk.sh
