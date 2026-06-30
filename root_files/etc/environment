@@ -1,0 +1,22 @@
+#
+# This file is parsed by pam_env module
+#
+# Syntax: simple "KEY=VAL" pairs on separate lines
+#
+
+# General wayland environment variables
+XDG_CURRENT_DESKTOP=sway
+XDG_SESSION_DESKTOP=sway
+XDG_SESSION_TYPE=wayland
+QT_QPA_PLATFORM=wayland
+GDK_BACKEND=wayland
+SDL_VIDEODRIVER=wayland
+_JAVA_AWT_WM_NONREPARENTING=1
+MOZ_ENABLE_WAYLAND=1
+
+# GPU setup - Intel
+VDPAU_DRIVER=va_gl
+LIBVA_DRIVER_NAME=iHD
+
+GLIBC_TUNABLES=glibc.cpu.x86_shstk=on:glibc.cpu.x86_ibt=on:glibc.cpu.hwcaps=IBT,SHSTK
+LD_PRELOAD=/usr/local/lib/libhardened_malloc.so # TODO: Temporary. /etc/ld.so.preload will be used as soon as Chromium stops crashing with it.
