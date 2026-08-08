@@ -1,0 +1,9 @@
+#!/bin/bash
+build() {
+    add_file "/etc/ipe/hardened.policy.p7b"
+    add_file "/etc/ipe/hardened.policy"
+    add_runscript
+}
+help() {
+    echo "Loads and activates the hardened IPE policy before switch_root."
+}
