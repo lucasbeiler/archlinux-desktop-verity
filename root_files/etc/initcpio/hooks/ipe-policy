@@ -1,0 +1,5 @@
+#!/usr/bin/ash
+run_hook() {
+    cat /etc/ipe_setup/hardened.policy.p7b > /sys/kernel/security/ipe/new_policy
+    echo 1 > /sys/kernel/security/ipe/policies/hardened/active
+}
