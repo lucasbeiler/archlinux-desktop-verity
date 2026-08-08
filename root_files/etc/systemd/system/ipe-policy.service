@@ -1,0 +1,16 @@
+[Unit]
+Description=Load and activate hardened IPE policy in initramfs
+DefaultDependencies=no
+
+# Wait until the initrd has done the storage setup that establishes
+# the dm-verity device, but still run before switch-root.
+After=initrd-root-fs.target
+Before=initrd-switch-root.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sh -ec 'cat /etc/ipe_setup/hardened.policy.p7b > /sys/kernel/security/ipe/new_policy && echo 1 > /sys/kernel/security/ipe/policies/hardened/active'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=initrd.target
