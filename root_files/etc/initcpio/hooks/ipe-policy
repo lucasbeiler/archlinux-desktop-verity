@@ -1,0 +1,13 @@
+#!/usr/bin/ash
+run_hook() {
+    ROOTHASH=""
+    for p in $(cat /proc/cmdline); do
+        case "$p" in
+            roothash=*) ROOTHASH="${p#roothash=}" ;;
+        esac
+    done
+    [ -n "$ROOTHASH" ] || { echo "ipe-policy: no roothash= on cmdline!"; return 1; }
+
+    sed "s/@ROOTHASH@/${ROOTHASH}/g" /etc/ipe/hardened.policy > /sys/kernel/security/ipe/new_policy
+    echo 1 > /sys/kernel/security/ipe/policies/hardened/active
+}
