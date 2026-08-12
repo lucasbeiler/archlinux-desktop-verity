@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Main kernel modules for Bluetooth stack
+MODULES=("bluetooth" "btintel")
+
+is_active() {
+    systemctl is-active --quiet bluetooth.service
+}
+
+if is_active; then
+    echo "[-] Disabling Bluetooth and unloading kernel modules..."
+    # Stop the systemd service
+    systemctl stop bluetooth.service
+
+    # Hard block via rfkill as a guarantee
+    rfkill block bluetooth 2>/dev/null
+    
+    # Forcefully unload kernel modules
+    for mod in "${MODULES[@]}"; do
+        modprobe -r "$mod" 2>/dev/null
+    done
+    
+    echo "[+] Bluetooth turned off successfully (modules unloaded)."
+else
+    echo "[+] Loading kernel modules and enabling Bluetooth..."
+
+    # Unblock.
+    rfkill unblock bluetooth 2>/dev/null
+    
+    # Load kernel modules back
+    for mod in "${MODULES[@]}"; do
+        modprobe "$mod" 2>/dev/null
+    done
+    
+    # Start the systemd service
+    systemctl start bluetooth.service
+    
+    echo "[+] Bluetooth activated and ready for use."
+fi
