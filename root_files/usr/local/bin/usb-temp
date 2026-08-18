@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Duration in seconds to keep new USB devices allowed
+TIMEOUT=30
+
+echo "[+] Temporarily allowing new USB devices for ${TIMEOUT} seconds..."
+sysctl -w kernel.deny_new_usb=0 > /dev/null
+
+# Spawn a background subshell to sleep and re-lock, 
+# allowing the script to return control immediately.
+(
+    sleep "$TIMEOUT"
+    sysctl -w kernel.deny_new_usb=1 > /dev/null
+    echo "[-] New USB devices blocked again."
+) &
+
+# Detach the background process so it runs independently
+disown
