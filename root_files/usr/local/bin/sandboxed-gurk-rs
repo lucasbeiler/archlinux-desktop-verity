@@ -1,0 +1,29 @@
+#!/bin/bash
+set -euxo pipefail
+
+exec bwrap \
+	--unshare-all \
+	--share-net \
+	--die-with-parent \
+	--new-session \
+	--proc /proc \
+	--dev /dev \
+	--ro-bind /usr/bin/gurk /usr/bin/gurk \
+	--ro-bind /usr/lib /usr/lib \
+	--ro-bind /usr/local/lib /usr/local/lib \
+	--ro-bind /lib /lib  \
+        --ro-bind /lib64 /lib64 \
+	--ro-bind /etc/ld.so.preload /etc/ld.so.preload \
+	--ro-bind /etc/localtime /etc/localtime \
+        --ro-bind /etc/ssl /etc/ssl \
+        --ro-bind /etc/ca-certificates /etc/ca-certificates \
+        --dir /run/user/$(id -u) \
+        --bind $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY /run/user/$(id -u)/$WAYLAND_DISPLAY \
+        --setenv XDG_RUNTIME_DIR /run/user/$(id -u) \
+        --setenv LD_PRELOAD /usr/lib/libhardened_malloc.so \
+	--setenv WAYLAND_DISPLAY $WAYLAND_DISPLAY \
+  --setenv TZ America/Sao_Paulo \
+	--tmpfs /tmp \
+        --ro-bind /home/${USER}/.config/gurk /home/${USER}/.config/gurk \
+	--bind /home/${USER}/.local/share/gurk /home/${USER}/.local/share/gurk \
+        /usr/bin/gurk
