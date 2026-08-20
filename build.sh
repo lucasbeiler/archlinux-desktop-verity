@@ -142,6 +142,30 @@ VERITY_HASH=$(echo "$VERITY_INFO" | awk '/Root hash:/ {print $3}')
 [ -n "$VERITY_HASH" ] || { echo "Failed to extract verity root hash"; exit 1; }
 echo "EROFS image: $OUTPUT  |  Verity root hash: $VERITY_HASH"
 
+# --- DELTA UPDATE SUPPORT -------------------------------------------------
+DELTA_DIR=/tmp/delta_build
+mkdir -p "$DELTA_DIR"
+PREV_TAG="$(curl -sL https://api.github.com/repos/lucasbeiler/archlinux-desktop-verity/releases | grep -oE 'os-[0-9]{12}' | sort | tail -n1 | tr -d 'os-')"
+if [ -n "${PREV_TAG:-}" ] && [ "$PREV_TAG" != "os-${OS_BUILD_TAG}" ]; then
+  echo "Previous release found: ${PREV_TAG}. Generating delta..."
+  PREV_URL="https://github.com/lucasbeiler/archlinux-desktop-verity/releases/download/${PREV_TAG}"
+  PREV_EROFS="${DELTA_DIR}/prev-rootfs.erofs"
+
+  if curl -L -f --progress-bar -o "$PREV_EROFS" "${PREV_URL}/rootfs.erofs"; then
+    DELTA_FILE="${DELTA_DIR}/rootfs-${PREV_TAG}-to-${OS_BUILD_TAG}.xdelta"
+    xdelta3 -e -9 -S -s "$PREV_EROFS" "$OUTPUT" "$DELTA_FILE"
+    echo "Delta generated: $(basename "$DELTA_FILE") ($(du -h "$DELTA_FILE" | cut -f1))"
+  else
+    echo "Warning: could not download previous release rootfs, skipping delta." >&2
+    DELTA_FILE=""
+  fi
+  rm -f "$PREV_EROFS"
+else
+  echo "No previous release found, skipping delta generation."
+  DELTA_FILE=""
+fi
+
+
 mkdir -p ${WORKDIR}/etc/ipe_setup/
 cat > ${WORKDIR}/etc/ipe_setup/hardened.policy <<EOF
 policy_name=hardened policy_version=0.0.0
@@ -205,6 +229,10 @@ sbsign --key /tmp/sbsign/keys/db/db.key \
        --cert /tmp/sbsign/keys/db/db.pem \
        --output /hardenedos/uki-${OS_BUILD_TAG}-signed.efi /tmp/boot_artifacts/uki.efi
 
+if [ -n "${DELTA_FILE:-}" ] && [ -f "$DELTA_FILE" ]; then
+  mv "$DELTA_FILE" "/hardenedos/$(basename "$DELTA_FILE")"
+fi
+
 MANIFEST="/hardenedos/SHA256SUMS-${OS_BUILD_TAG}"
 (
   cd -- "$(dirname -- "$OUTPUT")" || exit 1
@@ -212,7 +240,8 @@ MANIFEST="/hardenedos/SHA256SUMS-${OS_BUILD_TAG}"
     "$(basename -- "$OUTPUT")" \
     "$(basename -- "${OUTPUT}.verity")" \
     bootloader-signed.efi \
-    "uki-${OS_BUILD_TAG}-signed.efi"
+    "uki-${OS_BUILD_TAG}-signed.efi" \
+    $( [ -n "${DELTA_FILE:-}" ] && [ -f "/hardenedos/$(basename "$DELTA_FILE")" ] && echo "$(basename "$DELTA_FILE")" )
 ) > "$MANIFEST"
 ssh-keygen -Y sign -f /tmp/sigkeys/manifest_sigkey -n hardenedos-build "$MANIFEST"
 
