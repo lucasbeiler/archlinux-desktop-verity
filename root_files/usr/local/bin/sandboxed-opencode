@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+PROJECT_DIR="$(pwd)"
+ARGS="${@:-web}"
+[[ -d .git ]] || exit 1
+
+mkdir -p "$HOME/.cache/opencode" "$HOME/.local/share/opencode" "$HOME/.local/state/opencode" "$HOME/.config/opencode"
+
+PROJECT_NAME="$(basename -- "$PROJECT_DIR")"
+SANDBOX_PROJECT="/home/opencode/$PROJECT_NAME"
+
+DENY_NAME_PATTERNS=(
+  "*.env"
+  "*.env.*"
+  "*secret*"
+  "*private*"
+  "*credential*"
+  "*password*"
+  "*.pem"
+  "*.key"
+  "bootstrap.sh"
+  "encrypt*.sh"
+  "test-chart*.sh"
+)
+
+# Prepare expression -iname pat1 -o -iname pat2 -o ...
+FIND_EXPR=()
+for pat in "${DENY_NAME_PATTERNS[@]}"; do
+  [[ ${#FIND_EXPR[@]} -gt 0 ]] && FIND_EXPR+=(-o)
+  FIND_EXPR+=(-iname "$pat")
+done
+
+# For directories: --tmpfs
+# For files: --ro-bind /dev/null
+MASK_ARGS=(--tmpfs "$SANDBOX_PROJECT/.git")
+while IFS= read -r -d '' path; do
+  rel="${path#"$PROJECT_DIR"/}"
+  target="$SANDBOX_PROJECT/$rel"
+  if [[ -d "$path" ]]; then
+    MASK_ARGS+=(--tmpfs "$target")
+  else
+    MASK_ARGS+=(--ro-bind /dev/null "$target")
+  fi
+done < <(find "$PROJECT_DIR" -path "$PROJECT_DIR/.git" -prune -o \( "${FIND_EXPR[@]}" \) -print0)
+
+exec bwrap \
+  --die-with-parent \
+  --new-session \
+  --unshare-all \
+  --share-net \
+  --cap-drop ALL \
+  \
+  --ro-bind /usr /usr \
+  --ro-bind /bin /bin \
+  --ro-bind /lib /lib \
+  --ro-bind /lib64 /lib64 \
+  --ro-bind /etc /etc \
+  \
+  --proc /proc \
+  --dev /dev \
+  --tmpfs /tmp \
+  \
+  --dir /home/opencode \
+  --setenv USER opencode \
+  --setenv HOME /home/opencode \
+  --setenv PATH /usr/local/bin:/usr/bin:/bin \
+  \
+  --dir /run/user/$(id -u) \
+  --bind "$HOME/.cache/opencode" /home/opencode/.cache/opencode \
+  --bind "$HOME/.local/share/opencode" /home/opencode/.local/share/opencode \
+  --bind "$HOME/.local/state/opencode" /home/opencode/.local/state/opencode \
+  --bind "$HOME/.config/opencode" /home/opencode/.config/opencode \
+  --bind "$PROJECT_DIR" "$SANDBOX_PROJECT" \
+  "${MASK_ARGS[@]}" \
+  --chdir "/home/opencode/" \
+  \
+  opencode "${ARGS}"
