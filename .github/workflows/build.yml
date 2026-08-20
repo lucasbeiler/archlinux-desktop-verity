@@ -29,7 +29,7 @@ jobs:
         run: |
           pacman-key --init
           pacman -Syu --noconfirm
-          pacman -S --noconfirm base base-devel openssh arch-install-scripts erofs-utils git sbsigntools systemd-ukify
+          pacman -S --noconfirm base base-devel openssh arch-install-scripts erofs-utils git sbsigntools systemd-ukify jq xdelta3
 
       - name: Write Secure Boot keys to files
         env:
@@ -78,3 +78,4 @@ jobs:
             /hardenedos/bootloader-signed.efi
             /hardenedos/SHA256SUMS-${{ steps.version.outputs.tag }}
             /hardenedos/SHA256SUMS-${{ steps.version.outputs.tag }}.sig
+            /hardenedos/*.xdelta

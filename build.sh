@@ -14,7 +14,7 @@ rm -rf $WORKDIR && mkdir -p $WORKDIR
 
 BASE_DEVEL_WITHOUT_SUDO=$(LANG=en_US pacman -Sii base-devel | grep ^Depends | cut -d ':' -f2 | sed 's/sudo//g')
 pacstrap -P -c -K $WORKDIR \
-  base ${BASE_DEVEL_WITHOUT_SUDO} wpa_supplicant bluez bluez-utils eza chromium gptfdisk linux-hardened linux-firmware-intel intel-ucode iptables less ntpd-rs dnscrypt-proxy apparmor tpm2-tss tpm2-tools erofs-utils \
+  base ${BASE_DEVEL_WITHOUT_SUDO} xdelta3 wpa_supplicant bluez bluez-utils eza chromium gptfdisk linux-hardened linux-firmware-intel intel-ucode iptables less ntpd-rs dnscrypt-proxy apparmor tpm2-tss tpm2-tools erofs-utils \
   mkinitcpio opendoas openssh pamixer fastfetch git unzip zip unrar power-profiles-daemon python-gobject sof-firmware wireplumber pipewire-pulse pavucontrol mtools dosfstools \
   bubblewrap-suid nmap wl-clipboard slurp grim xdg-desktop-portal alacritty libnotify jq yq patchutils firecracker helix ollama opencode tmux kubectl helm kustomize sops age checksec spotify-player gurk \
   sway kanshi brightnessctl xdg-desktop-portal-wlr mako swayidle swaylock swaybg ttf-jetbrains-mono arch-repro-status rclone
@@ -142,6 +142,40 @@ VERITY_HASH=$(echo "$VERITY_INFO" | awk '/Root hash:/ {print $3}')
 [ -n "$VERITY_HASH" ] || { echo "Failed to extract verity root hash"; exit 1; }
 echo "EROFS image: $OUTPUT  |  Verity root hash: $VERITY_HASH"
 
+# --- DELTA UPDATE SUPPORT -------------------------------------------------
+DELTA_DIR=/tmp/delta_build
+mkdir -p "$DELTA_DIR"
+
+PREV_TAGS="$(curl -sL https://api.github.com/repos/lucasbeiler/archlinux-desktop-verity/releases \
+  | grep -oE 'os-[0-9]{12}' \
+  | sort -u \
+  | grep -v "^os-${OS_BUILD_TAG}\$" \
+  | sort \
+  | tail -n3 | tr -d 'os-')"
+
+DELTA_FILES=""
+if [ -n "$PREV_TAGS" ]; then
+  echo "Previous releases found for delta generation:"
+  echo "$PREV_TAGS"
+  for PREV_TAG_FULL in $PREV_TAGS; do
+    PREV_TAG="${PREV_TAG_FULL#os-}"
+    PREV_URL="https://github.com/lucasbeiler/archlinux-desktop-verity/releases/download/${PREV_TAG_FULL}"
+    PREV_EROFS="${DELTA_DIR}/prev-rootfs-${PREV_TAG}.erofs"
+
+    if curl -L -f --progress-bar -o "$PREV_EROFS" "${PREV_URL}/rootfs.erofs"; then
+      DELTA_FILE="${DELTA_DIR}/rootfs-${PREV_TAG}-to-${OS_BUILD_TAG}.xdelta"
+      xdelta3 -e -9 -S -s "$PREV_EROFS" "$OUTPUT" "$DELTA_FILE"
+      echo "Delta generated: $(basename "$DELTA_FILE") ($(du -h "$DELTA_FILE" | cut -f1))"
+      DELTA_FILES="$DELTA_FILES $DELTA_FILE"
+    else
+      echo "Warning: could not download rootfs for ${PREV_TAG_FULL}, skipping delta." >&2
+    fi
+    rm -f "$PREV_EROFS"
+  done
+else
+  echo "No previous releases found, skipping delta generation."
+fi
+
 mkdir -p ${WORKDIR}/etc/ipe_setup/
 cat > ${WORKDIR}/etc/ipe_setup/hardened.policy <<EOF
 policy_name=hardened policy_version=0.0.0
@@ -205,6 +239,10 @@ sbsign --key /tmp/sbsign/keys/db/db.key \
        --cert /tmp/sbsign/keys/db/db.pem \
        --output /hardenedos/uki-${OS_BUILD_TAG}-signed.efi /tmp/boot_artifacts/uki.efi
 
+for DELTA_FILE in $DELTA_FILES; do
+  [ -f "$DELTA_FILE" ] && mv "$DELTA_FILE" "/hardenedos/$(basename "$DELTA_FILE")"
+done
+
 MANIFEST="/hardenedos/SHA256SUMS-${OS_BUILD_TAG}"
 (
   cd -- "$(dirname -- "$OUTPUT")" || exit 1
@@ -212,7 +250,8 @@ MANIFEST="/hardenedos/SHA256SUMS-${OS_BUILD_TAG}"
     "$(basename -- "$OUTPUT")" \
     "$(basename -- "${OUTPUT}.verity")" \
     bootloader-signed.efi \
-    "uki-${OS_BUILD_TAG}-signed.efi"
+    "uki-${OS_BUILD_TAG}-signed.efi" \
+    $(for f in $DELTA_FILES; do [ -f "/hardenedos/$(basename "$f")" ] && basename "$f"; done)
 ) > "$MANIFEST"
 ssh-keygen -Y sign -f /tmp/sigkeys/manifest_sigkey -n hardenedos-build "$MANIFEST"
 
