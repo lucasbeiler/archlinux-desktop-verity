@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euxo pipefail
+
+echo "nameserver 208.67.222.222" > /tmp/resolv.conf && bwrap   --unshare-all   --share-net   --die-with-parent   --proc /proc   --dev /dev   --dev-bind /dev/dri /dev/dri   --ro-bind /usr /usr   --ro-bind /lib /lib   --ro-bind /lib64 /lib64   --ro-bind /bin /bin   --ro-bind /sbin /sbin   --ro-bind /etc/fonts /etc/fonts    --ro-bind /usr/share/fonts /usr/share/fonts   --tmpfs /tmp   --tmpfs /home   --tmpfs /etc   --setenv HOME /home/user --ro-bind /tmp/resolv.conf /etc/resolv.conf   --setenv XDG_RUNTIME_DIR $XDG_RUNTIME_DIR   --bind $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY   chromium --no-sandbox      --user-data-dir=/home/user/profile
