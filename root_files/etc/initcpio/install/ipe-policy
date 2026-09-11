@@ -1,0 +1,11 @@
+#!/bin/bash
+build() {
+    add_systemd_unit ipe-policy.service
+    add_file /etc/ipe_setup/hardened.policy.p7b
+    add_file /etc/ipe_setup/hardened.policy
+    add_file /usr/lib/systemd/system/ipe-policy.service
+    add_symlink /etc/systemd/system/sysinit.target.wants/ipe-policy.service /usr/lib/systemd/system/ipe-policy.service    
+}
+help() {
+    echo "Loads and activates the hardened IPE policy before switch-root."
+}
