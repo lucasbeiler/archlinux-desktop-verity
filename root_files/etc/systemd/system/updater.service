@@ -1,0 +1,8 @@
+[Unit]
+Description=System updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'mkdir -p /data/logs && /usr/local/bin/updater >> /data/logs/updater-$(date +%%Y%%m%%d-%%H%%M%%S).log 2>&1'
