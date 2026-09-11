@@ -1,0 +1,12 @@
+[Unit]
+Description=Dump AppArmor-related dmesg lines to persistent storage
+After=multi-user.target
+RequiresMountsFor=/data
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sh -c 'dmesg | grep -i apparmor >> /data/aa-early.log 2>&1 || true'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
