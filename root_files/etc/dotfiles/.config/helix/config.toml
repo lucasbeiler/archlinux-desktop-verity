@@ -1,0 +1,88 @@
+theme = "sonokai-custom"
+
+[editor]
+cursorline = true
+bufferline = "multiple"
+auto-format = true
+color-modes = true
+idle-timeout = 500              # ms before hover/highlight triggers
+
+[editor.search]
+smart-case = true
+
+[editor.indent-guides]
+render = true                   # like indent-blankline.nvim
+
+[editor.lsp]
+display-inlay-hints = true
+display-messages = true
+
+[editor.cursor-shape]
+insert = "bar"
+
+[editor.statusline]
+left = ["mode", "spinner", "file-name", "file-modification-indicator"]
+center = ["diagnostics"]
+right = ["selections", "position", "file-encoding", "file-line-ending", "file-type"]
+
+[editor.soft-wrap]
+enable = false                  # matches set nowrap
+
+# Key mappings — adding shortcuts on top of Helix defaults
+
+[keys.normal]
+# Save
+C-s = ":write"
+# Quit
+A-x = ":quit"
+# Hover (type info)
+K = "hover"
+# Comment toggle (requires enable_kitty_keyboard in WezTerm, breaks Neovim Flatpak)
+# "C-/" = "toggle_comments"
+# Move lines
+A-up = "move_line_up"
+A-down = "move_line_down"
+# Indent/dedent
+tab = "indent"
+S-tab = "unindent"
+A-left = "unindent"
+A-right = "indent"
+# Buffer navigation
+A-tab = ":buffer-next"
+S-A-tab = ":buffer-previous"
+# File picker / grep (additional to Space-f and Space-/)
+C-p = "file_picker"
+C-f = "global_search"
+# Word movement
+C-right = "move_next_word_start"
+C-left = "move_prev_word_end"
+S-left = "extend_char_left"
+S-right = "extend_char_right"
+S-A-left = "extend_prev_word_start"
+S-A-right = "extend_next_word_start"
+
+[keys.insert]
+# Save
+C-s = ["normal_mode", ":write"]
+# "C-/" = "toggle_comments"
+# Move lines
+A-up = "move_line_up"
+A-down = "move_line_down"
+# Word movement
+C-right = "move_next_word_start"
+C-left = "move_prev_word_end"
+A-left = "move_prev_word_start"
+A-right = "move_next_word_end"
+S-left = "extend_char_left"
+S-right = "extend_char_right"
+S-A-left = "extend_prev_word_start"
+S-A-right = "extend_next_word_start"
+
+[keys.select]
+# "C-/" = "toggle_comments"
+# Move lines
+A-up = "move_line_up"
+A-down = "move_line_down"
+# Indent/dedent
+tab = "indent"
+S-tab = "unindent"
