@@ -1,0 +1,19 @@
+[Unit]
+Description=Firecracker microVM (%i)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/firecracker-archlinux
+Environment=SOCKFILE=/tmp/firecracker-%i.sock
+Environment=CONFIGFILE=%h/firecracker-archlinux/vm.config.json
+ExecStartPre=/bin/rm -f ${SOCKFILE}
+ExecStart=/usr/bin/firecracker --api-sock ${SOCKFILE} --config-file ${CONFIGFILE}
+ExecStopPost=/bin/rm -f ${SOCKFILE}
+Restart=on-failure
+RestartSec=2
+StandardOutput=append:%h/.local/state/firecracker-%i.log
+StandardError=append:%h/.local/state/firecracker-%i.log
+
+[Install]
+WantedBy=default.target
