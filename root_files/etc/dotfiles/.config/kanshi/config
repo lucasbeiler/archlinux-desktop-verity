@@ -1,0 +1,13 @@
+# profile stalking {
+#     output eDP-1 mode 1920x1080@60 position 0,0
+#     output * mode 2560x1080@75 position 1920,0
+# }
+
+profile docked {
+    output eDP-1 disable
+    output * mode 2560x1080@75
+}
+
+profile mobile {
+    output eDP-1 enable scale 1
+}
