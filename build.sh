@@ -104,7 +104,7 @@ locale-gen
 
 # TODO: The wireless network interface (wlo1) should not be hardcoded like this.
 systemctl daemon-reload
-systemctl enable apparmor iptables wpa_supplicant-nl80211@wlo1 udisks2 dnscrypt-proxy ntpd-rs systemd-networkd systemd-homed mydenyusb updater.timer firecracker-net-setup.service
+systemctl enable iptables wpa_supplicant-nl80211@wlo1 udisks2 dnscrypt-proxy ntpd-rs systemd-networkd systemd-homed mydenyusb updater.timer firecracker-net-setup.service
 systemctl disable systemd-timesyncd.service
 systemctl mask efi.automount
 
@@ -239,7 +239,7 @@ arch-chroot $WORKDIR mkinitcpio -p linux-hardened || :
 # ... overwrite it with the one that actually contains the signed IPE policy.
 mv ${WORKDIR}/boot/* /tmp/boot_artifacts/
 
-CMDLINE="systemd.verity=1 roothash=${VERITY_HASH} systemd.verity_root_options=panic-on-corruption rd.emergency=reboot rd.shell=0 apparmor=1 security=apparmor lsm=landlock,lockdown,yama,integrity,apparmor,bpf,ipe ipe.enforce=1 slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 oops=panic intel_iommu=on iommu=force iommu.strict=1 iommu.passthrough=0 vsyscall=none pti=on spectre_v2=on mds=full,nosmt efi=disable_early_pci_dma spec_store_bypass_disable=on tsx=off tsx_async_abort=full,nosmt l1tf=full,force nosmt=force kvm.nx_huge_pages=force randomize_kstack_offset=on debugfs=off ipv6.disable=1 extra_latent_entropy modprobe.blacklist=thunderbolt  lockdown=confidentiality module.sig_enforce=1   i915.modeset=1 i915.enable_dpcd_backlight=3 i915.enable_guc=3 pcie_aspm.policy=powersupersave acpi.ec_no_wakeup=1 "
+CMDLINE="systemd.verity=1 roothash=${VERITY_HASH} systemd.verity_root_options=panic-on-corruption rd.emergency=reboot rd.shell=0 apparmor=0 lsm=landlock,lockdown,yama,integrity,bpf,ipe ipe.enforce=1 slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 oops=panic intel_iommu=on iommu=force iommu.strict=1 iommu.passthrough=0 vsyscall=none pti=on spectre_v2=on mds=full,nosmt efi=disable_early_pci_dma spec_store_bypass_disable=on tsx=off tsx_async_abort=full,nosmt l1tf=full,force nosmt=force kvm.nx_huge_pages=force randomize_kstack_offset=on debugfs=off ipv6.disable=1 extra_latent_entropy modprobe.blacklist=thunderbolt  lockdown=confidentiality module.sig_enforce=1   i915.modeset=1 i915.enable_dpcd_backlight=3 i915.enable_guc=3 pcie_aspm.policy=powersupersave acpi.ec_no_wakeup=1 "
 
 # Generate Unified Kernel Image
 ukify build \
