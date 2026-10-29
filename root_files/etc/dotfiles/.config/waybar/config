@@ -1,0 +1,173 @@
+{
+    "layer": "top",
+    "position": "bottom",
+    "exclusive": true,
+    "passthrough": false,
+    "height": 24,
+    "spacing": 0,
+    "margin": 0,
+    "start_hidden": false,
+    "fixed-center": false,
+    "reload_style_on_change": false,
+
+    "modules-left": ["wlr/taskbar"],
+    //"modules-center": ["wlr/taskbar"],
+    "modules-right": ["tray", "group/networking", "group/core"],
+
+    "group/leftWrapper": {
+        "orientation": "horizontal",
+        "modules": [
+            "custom/launcher",
+            "wlr/taskbar",
+        ],
+    },
+
+    "group/rightWrapper": {
+        "orientation": "horizontal",
+        "modules": [
+            "group/networking",
+            "group/core",
+        ],
+    },
+
+    "group/core": {
+        "orientation": "inherit",
+        "modules": [
+            "wireplumber",
+            //"custom/keyboard",
+            "battery",
+            "custom/weather",
+            "clock",
+        ],
+    },
+
+    "group/networking": {
+        "orientation": "inherit",
+        "modules": [
+            "bluetooth",
+            "network",
+        ],
+    },
+
+    "group/stats": {
+        "orientation": "inherit",
+        "modules": [
+            "cpu",
+            "memory",
+        ],
+    },
+
+    "group/laptop": {
+        "orientation": "inherit",
+        "modules": [
+            "battery",
+            "backlight",
+        ],
+    },
+
+    "wlr/taskbar": {
+        "format": "{icon} {name}",
+        "icon-size": 14,
+        // "icon-theme": "breeze",
+        "tooltip": false,
+        "on-click": "minimize-raise",
+        "on-click-middle": "close",
+    },
+
+    "tray": {
+        "icon-size": 18,
+        "spacing": 4,
+        "padding": "0 2px 0 2px",
+        "border-radius": 8
+    },
+
+    "custom/launcher": {
+        "format": "<span color=\"#78b6ad\" size='medium'>--</span>",
+        "on-click": "fuzz-launcher",
+        "tooltip": false
+    },
+
+    "wlr/workspaces": {
+        "all-outputs": true,
+        "format": "{name}"
+    },
+
+    "custom/weather": {
+      "exec": "bash ~/.config/waybar/weather.sh",
+      "format": "<span color=\"#78b6ad\" size='medium'>WTR:</span> {}",
+      "interval": 600
+    },
+
+    "clock": {
+        "format": "<span color=\"#78b6ad\" size='medium'>CLOCK:</span> {:%d/%m %H:%M:%S}",
+        "interval": 1,
+        "format-alt": "<span color=\"#78b6ad\" size='medium'>DATE:</span> {:%a %d %b}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "actions": {
+          "on-click-right": "mode",
+          "on-scroll-up": "shift_down",
+          "on-scroll-down": "shift_up"
+        }
+    },
+
+
+    "wireplumber": {
+        "format": "<span color=\"#78b6ad\" size='medium'>VOL:</span> {volume}%",
+        "format-muted": "<span color=\"#78b6ad\" size='medium'>VOL:</span> Muted",
+        "on-click": "pavucontrol",
+        "max-volume": 150,
+        "scroll-step": 0.2,
+        "tooltip": false
+    },
+
+    "network": {
+        "format-wifi": "<span color=\"#78b6ad\" size='medium'>WIFI:</span> {signalStrength}%",
+        "format-ethernet": "<span color=\"#78b6ad\" size='medium'>CONN:</span> eth",
+        "format-linked": "<span color=\"#78b6ad\" size='medium'>CONN:</span> {ifname} (No IP)",
+        "format-disconnected": "404",
+        "format-alt": "<span color=\"#78b6ad\" size='medium'>ADDR:</span> {ipaddr}",
+	"tooltip": false,
+    },
+
+    "bluetooth": {
+        "format": "<span color=\"#78b6ad\" size='medium'>BT:</span> {status}",
+        "format-disabled": "",
+        "format-connected": "<span color=\"#78b6ad\" size='medium'>EAR:</span> {device_alias} ({device_battery_percentage}% battery)",
+        "format-alt-connected": "<span color=\"#78b6ad\"size='medium'>EAR:</span> {device_alias}",
+        "tooltip-format-connected": "<span color=\"#78b6ad\" size='medium'size='medium'>BT:</span> {device_enumerate}",
+        "tooltip-format-enumerate-connected": "<span color=\"#78b6ad\" size='medium'>BT:</span> {device_alias}"
+    },
+ 
+    "cpu": {
+        "format": "<span color=\"#78b6ad\" size='medium'></span> {usage}%",
+        "tooltip": false,
+        "interval": 50
+    },
+
+    "memory": {
+        "format": "<span color=\"#78b6ad\" size='medium'></span> {}%"
+    },
+
+    "temperature": {
+        "critical-threshold": 80,
+        "format": "{icon} {temperatureC}°C",
+        "format-icons": ["<span color=\"#78b6ad\" size='medium'></span>", "<span color=\"#78b6ad\" size='medium'></span>", "<span color=\"#78b6ad\" size='medium'></span>"],
+        "tooltip": false
+    },
+
+    "backlight": {
+        "format": "<span color=\"#78b6ad\" size='medium'></span> {percent}%",
+        "tooltip": false
+    },
+
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "<span color=\"#78b6ad\" size='medium'>BAT:</span> {capacity}%",
+        "format-alt": "<span color=\"#78b6ad\" size='medium'>BAT:</span> {time}",
+        "format-charging": "<span color=\"#78b6ad\" size='medium'>BAT:</span> {capacity}%",
+        "format-plugged": "<span color=\"#78b6ad\" size='medium'>BAT:</span> {capacity}%",
+    },
+}
