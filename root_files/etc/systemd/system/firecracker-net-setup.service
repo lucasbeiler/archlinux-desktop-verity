@@ -1,0 +1,14 @@
+[Unit]
+Description=Set up tap0 and NAT for Firecracker microVMs
+After=network-online.target iptables.service wpa_supplicant-nl80211@wlo1.service
+Wants=network-online.target
+ConditionPathExists=!/sys/class/net/tap0
+ 
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/firecracker-net-up
+#ExecStop=/usr/local/bin/firecracker-net-down
+ 
+[Install]
+WantedBy=multi-user.target
