@@ -1,0 +1,54 @@
+#!/bin/sh
+# Silly script to reduce what is persisted inside home directories. Logins should run it via /etc/profile.
+set -euo pipefail
+
+if [[ $(id -u) -ge 1000 ]] && shopt -q login_shell && [[ "$(tty)" =~ ^/dev/tty[0-9] ]]; then
+  find "$HOME" -mindepth 1 -maxdepth 1 \
+    ! -name "Downloads" \
+    ! -name ".config" \
+    ! -name ".var" \
+    ! -name ".azure" \
+    ! -name ".kube" \
+    ! -name ".identity" \
+    ! -name ".identity-blob" \
+    ! -name ".gitconfig" \
+    ! -name ".ssh" \
+    ! -name ".local" \
+    ! -name ".cache" \
+    ! -name "keep" \
+    -exec rm -rf {} +
+
+  find "$HOME/.config" -mindepth 1 -maxdepth 1 \
+    ! -name "chromium" \
+    -exec rm -rf {} +
+
+  find "$HOME/.config/chromium" -mindepth 1 -maxdepth 1 \
+    ! -name "Default" \
+    -exec rm -rf {} +
+
+  find "$HOME/.kube" -mindepth 1 -maxdepth 1 \
+    ! -name "config" \
+    -exec rm -rf {} +
+
+  find "$HOME/.local" -mindepth 1 -maxdepth 1 \
+    ! -name "share" \
+    -exec rm -rf {} +
+
+  find "$HOME/.local/share" -mindepth 1 -maxdepth 1 \
+    ! -name "gurk" \
+    -exec rm -rf {} +
+
+  find "$HOME/.local/share/gurk" -mindepth 1 -maxdepth 1 \
+    ! -name "*.sqlite" \
+    -exec rm -rf {} +
+
+  find "$HOME/.cache" -mindepth 1 -maxdepth 1 \
+    ! -name "spotify-player" \
+    -exec rm -rf {} +
+
+  find "$HOME/.cache/spotify-player" -mindepth 1 -maxdepth 1 \
+    ! -name "*.json" \
+    -exec rm -rf {} +
+
+  cp -r /etc/dotfiles/.* "$HOME"
+fi
