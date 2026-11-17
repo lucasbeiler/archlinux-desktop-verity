@@ -1,0 +1,23 @@
+#!/usr/bin/bash
+set -euo pipefail
+ 
+WAN_IF="wlo1"
+TAP_IF="tap0"
+TAP_ADDR="172.16.0.1/30"
+GUEST_IP="172.16.0.2"
+ 
+# Idempotent: skip if the tap device already exists.
+if ip link show "${TAP_IF}" &>/dev/null; then
+  exit 0
+fi
+
+modprobe tun 
+ip tuntap add "${TAP_IF}" mode tap
+ip addr add "${TAP_ADDR}" dev "${TAP_IF}"
+ip link set "${TAP_IF}" up
+ 
+echo 1 > /proc/sys/net/ipv4/ip_forward
+ 
+iptables -t nat -A POSTROUTING -o "${WAN_IF}" -s "${GUEST_IP}" -j MASQUERADE
+iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i "${TAP_IF}" -o "${WAN_IF}" -j ACCEPT
